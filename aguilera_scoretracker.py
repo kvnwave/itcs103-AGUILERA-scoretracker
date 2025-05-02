@@ -1,6 +1,7 @@
 from openpyxl import Workbook, load_workbook
 import tkinter as tk
 from tkinter import messagebox, scrolledtext
+from tkinter import ttk
 
 def validate_inputs():
     studentname = studentname_entry.get()
@@ -13,7 +14,7 @@ def validate_inputs():
     try:
         score_value =int(score)
         if score_value < 0 or score_value > 100:
-            messagebox.showerror("Score must be between 0 and 100.")
+            messagebox.showerror("Score reached limit.")
             return False
     except ValueError:
         messagebox.showerror("Score must be a numeric value.")
@@ -65,29 +66,54 @@ def show_all_records():
         wb = load_workbook("student_scores.xlsx")
         ws = wb["ScoreTracker"]
     except FileNotFoundError:
-        messagebox.showerror("Excel File not created yet.")
+        messagebox.showerror("Excel File not found")
         return
 
     records = []
+    total_score = 0
+    count = 0
+
     for row in range(2, ws.max_row + 1):
         name = ws.cell(row=row, column=1).value
         score = ws.cell(row=row, column=2).value
         grade = ws.cell(row=row, column=3).value
-        records.append(f"{name:<30} {score:<30} {grade:<10}")
+        records.append((name, score, grade))
+        total_score += score
+        count += 1
+
+    average_score = total_score / count if count > 0 else 0
 
     record_window = tk.Toplevel()
     record_window.title("Score Tracker")
-    record_window.geometry("400x250")
-    text_area = scrolledtext.ScrolledText(record_window, width=50, height=15, font=("Arial", 10))
-    text_area.pack(padx=15, pady=10)
-    text_area.insert(tk.END, f"{'Student Name':<30} {'Score':<30} {'Grade':<10}\n")
-    text_area.insert(tk.END, "="*40 + "\n")
+    record_window.geometry("400x300")
+
+    layout = ttk.Treeview(record_window, columns=("Student Name", "Score", "Grade"), show='headings')
+    layout.heading("Student Name", text="Student Name")
+    layout.heading("Score", text="Score")
+    layout.heading("Grade", text="Grade")
+
+    layout.column("Student Name", width=150)
+    layout.column("Score", width=100)
+    layout.column("Grade", width=100)
+
     for record in records:
-        text_area.insert(tk.END, record + "\n")
-    text_area.config(state=tk.DISABLED)
+        layout.insert("", tk.END,values=record)
+
+    scrollbar = ttk.Scrollbar(record_window, orient="vertical", command=layout.yview)
+    layout.configure(yscroll=scrollbar.set)
+    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+    layout.pack(padx=15, pady=10, fill=tk.BOTH, expand=True)
+    average_label = tk.Label(record_window, text=f"Average Score: {average_score:.2f}", font=("Arial", 12))
+    average_label.pack(pady=10)
 
 window = tk.Tk()
 window.title("Score Tracker")
+height = 100
+width = 250
+x = (window.winfo_screenwidth()//2)-(width//2)
+y = (window.winfo_screenheight()//2)-(height//2)
+window.geometry('{}x{}+{}+{}'.format(width,height,x,y))
 
 tk.Label(window, text="Student Name").grid(row=2, column=0, padx=20,pady=2,sticky="NSEW")
 tk.Label(window, text="Score").grid(row=3, column=0,padx=20, pady=2,sticky="NSEW")
